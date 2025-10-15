@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Variance Analysis Training</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .header h1 { color: #1e40af; font-size: 32px; margin-bottom: 10px; }
+        .header p { color: #6b7280; font-size: 16px; }
+        .progress-bar { display: flex; gap: 8px; margin-top: 20px; }
+        .progress-segment { height: 8px; flex: 1; background: #e5e7eb; border-radius: 4px; transition: all 0.3s; }
+        .progress-segment.active { background: #3b82f6; }
+        .progress-segment.completed { background: #10b981; }
+        .main-content { display: grid; grid-template-columns: 280px 1fr; gap: 30px; }
+        .sidebar { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); height: fit-content; position: sticky; top: 20px; }
+        .sidebar h2 { font-size: 18px; margin-bottom: 15px; color: #1f2937; }
+        .module-btn { width: 100%; text-align: left; padding: 12px 15px; border: none; background: transparent; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; color: #4b5563; margin-bottom: 8px; transition: all 0.2s; }
+        .module-btn:hover { background: #f3f4f6; }
+        .module-btn.active { background: #dbeafe; color: #1e40af; font-weight: 600; }
+        .module-btn .check { color: #10b981; font-weight: bold; }
+        .content-area { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-height: 600px; }
+        .module-header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
+        .module-icon { width: 50px; height: 50px; background: #dbeafe; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .module-title { flex: 1; }
+        .module-title small { color: #6b7280; font-size: 14px; display: block; margin-bottom: 5px; }
+        .module-title h2 { color: #1f2937; font-size: 24px; }
+        .alert { padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid; }
+        .alert-blue { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+        .alert-amber { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+        .alert-green { background: #f0fdf4; border-color: #10b981; color: #065f46; }
+        .alert-red { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+        .alert-purple { background: #faf5ff; border-color: #a855f7; color: #6b21a8; }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0; }
+        .card { padding: 20px; border-radius: 8px; border: 2px solid; }
+        .card-red { background: #fef2f2; border-color: #fca5a5; }
+        .card-purple { background: #faf5ff; border-color: #d8b4fe; }
+        .card-green { background: #f0fdf4; border-color: #86efac; }
+        .card h3 { font-size: 18px; margin-bottom: 15px; }
+        .card-red h3 { color: #991b1b; }
+        .card-purple h3 { color: #6b21a8; }
+        .card-green h3 { color: #065f46; }
+        ul { margin: 15px 0; padding-left: 25px; line-height: 1.8; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-primary:disabled { background: #d1d5db; cursor: not-allowed; }
+        .btn-secondary { background: #e5e7eb; color: #4b5563; }
+        .btn-secondary:hover { background: #d1d5db; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 30px; border-top: 2px solid #e5e7eb; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-weight: 600; color: #374151; margin-bottom: 5px; font-size: 14px; }
+        .input-group input { width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+        .input-group input:focus { outline: none; border-color: #3b82f6; }
+        .input-group small { color: #6b7280; font-size: 12px; display: block; margin-top: 3px; }
+        .classroom-card { background: white; border: 2px solid #d1d5db; border-radius: 8px; padding: 20px; margin-bottom: 15px; }
+        .classroom-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .classroom-header h4 { font-size: 16px; color: #1f2937; }
+        .btn-icon { background: none; border: none; color: #ef4444; cursor: pointer; padding: 8px; border-radius: 4px; }
+        .btn-icon:hover { background: #fef2f2; }
+        .grid-inputs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .formula { background: #f9fafb; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px; margin: 10px 0; border: 1px solid #e5e7eb; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; }
+        .status-inflation { color: #ef4444; font-weight: 600; }
+        .status-deflation { color: #a855f7; font-weight: 600; }
+        .status-aligned { color: #10b981; font-weight: 600; }
+        .quiz-option { display: flex; align-items: start; gap: 10px; padding: 12px; margin: 8px 0; border-radius: 6px; cursor: pointer; border: 2px solid #e5e7eb; transition: all 0.2s; }
+        .quiz-option:hover { background: #f9fafb; border-color: #cbd5e1; }
+        .quiz-option input[type="radio"] { margin-top: 3px; }
+        .quiz-result { padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .quiz-result.pass { background: #f0fdf4; border: 2px solid #10b981; }
+        .quiz-result.fail { background: #fef2f2; border: 2px solid #ef4444; }
+        .step-badge { display: inline-block; background: #fca5a5; color: #7f1d1d; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 8px; }
+        .step-badge.purple { background: #d8b4fe; color: #581c87; }
+        .step-badge.green { background: #86efac; color: #14532d; }
+        @media (max-width: 968px) {
+            .main-content { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+            .grid-inputs { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Grade Variance Analysis Training</h1>
+            <p>Learn to identify and address grade inflation and deflation patterns</p>
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h2>Modules</h2>
+                <div id="moduleNav"></div>
+            </div>
+
+            <div class="content-area">
+                <div class="module-header" id="moduleHeader"></div>
+                <div id="moduleContent"></div>
+                <div class="nav-buttons">
+                    <button class="btn btn-secondary" id="prevBtn" onclick="previousModule()">Previous</button>
+                    <button class="btn btn-primary" id="nextBtn" onclick="nextModule()">Next Module</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentModule = 0;
+        let completedModules = [];
+        let classrooms = [{id: 1, teacher: '', courseGrade: '', standardsScore: '', commonAssessment: ''}];
+        let results = [];
+        let quizAnswers = {};
+
+        const modules = [
+            {
+                title: "Introduction to Grade Variance Analysis",
+                icon: "📚",
+                content: `
+                    <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 20px;">Understanding Grade Variance Analysis</h2>
+                    
+                    <div class="alert alert-blue">
+                        <p><strong>Grade variance analysis</strong> helps identify discrepancies between assigned course grades and actual standards mastery levels. This training will equip you with the knowledge to detect and address grade inflation and deflation patterns.</p>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card card-red">
+                            <h3>📈 Grade Inflation</h3>
+                            <p>When course grades are consistently higher than demonstrated mastery levels on standardized assessments.</p>
+                        </div>
+
+                        <div class="card card-purple">
+                            <h3>📉 Grade Deflation</h3>
+                            <p>When course grades are consistently lower than demonstrated mastery levels on standardized assessments.</p>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 30px; color: #1f2937;">Why This Matters:</h3>
+                    <ul>
+                        <li>✅ Ensures grading consistency across classrooms</li>
+                        <li>✅ Maintains academic integrity and standards</li>
+                        <li>✅ Provides accurate feedback to students and parents</li>
+                        <li>✅ Identifies professional development opportunities</li>
+                    </ul>
+                `
+            },
+            {
+                title: "Key Metrics and Data Sources",
+                icon: "📊",
+                content: `
+                    <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 20px;">Essential Metrics for Analysis</h2>
+                    
+                    <div class="alert alert-amber">
+                        <p>Effective analysis requires comparing multiple data points to identify patterns and outliers.</p>
+                    </div>
+
+                    <h3 style="margin-top: 25px; color: #1f2937;">Primary Data Sources:</h3>
+                    
+                    <div style="margin: 20px 0;">
+                        <div style="background: #eff6ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong style="color: #1e40af;">📄 Course Grades</strong>
+                            <p style="margin: 5px 0 0 0; color: #4b5563;">Final or semester grades assigned by teachers</p>
+                        </div>
+
+                        <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong style="color: #065f46;">🏆 Standards Assessments</strong>
+                            <p style="margin: 5px 0 0 0; color: #4b5563;">Standardized tests measuring mastery (state tests, benchmark assessments)</p>
+                        </div>
+
+                        <div style="background: #faf5ff; padding: 15px; border-radius: 8px;">
+                            <strong style="color: #6b21a8;">📋 Common Assessments</strong>
+                            <p style="margin: 5px 0 0 0; color: #4b5563;">District-wide or grade-level standardized evaluations</p>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 30px; color: #1f2937;">Key Calculation: Grade-Mastery Gap</h3>
+                    
+                    <div class="formula">
+                        Gap Score = Average Course Grade - Average Standards Score
+                    </div>
+
+                    <div style="margin: 15px 0; padding: 15px; background: #f9fafb; border-radius: 6px;">
+                        <p><strong style="color: #ef4444;">Positive gap (+15 or more):</strong> Potential grade inflation</p>
+                        <p><strong style="color: #10b981;">Minimal gap (-10 to +10):</strong> Aligned grading</p>
+                        <p><strong style="color: #a855f7;">Negative gap (-15 or less):</strong> Potential grade deflation</p>
+                    </div>
+                `
+            },
+            {
+                title: "Identifying Problem Patterns",
+                icon: "⚠️",
+                content: `
+                    <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 20px;">Recognizing Red Flags</h2>
+
+                    <div class="alert alert-amber">
+                        <p>Learn to identify systematic patterns that indicate grade variance issues requiring intervention.</p>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card card-red">
+                            <h3>📈 Inflation Warning Signs</h3>
+                            <ul style="margin-top: 10px;">
+                                <li>90%+ students earning A/B grades</li>
+                                <li>Large gap between grades and test scores (20+ points)</li>
+                                <li>High grades but low state assessment proficiency</li>
+                                <li>Grade increases without test improvements</li>
+                                <li>Outlier compared to department average</li>
+                            </ul>
+                        </div>
+
+                        <div class="card card-purple">
+                            <h3>📉 Deflation Warning Signs</h3>
+                            <ul style="margin-top: 10px;">
+                                <li>50%+ students earning D/F grades</li>
+                                <li>Low grades but high test performance (20+ points)</li>
+                                <li>High proficiency but low course success</li>
+                                <li>Consistently harsher than peers</li>
+                                <li>Student complaints about unclear expectations</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 30px; color: #1f2937;">Data Analysis Example:</h3>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Teacher</th>
+                                <th>Course Grade</th>
+                                <th>Standards Score</th>
+                                <th>Gap</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Ms. Johnson</td>
+                                <td>92%</td>
+                                <td>68%</td>
+                                <td class="status-inflation">+24</td>
+                                <td class="status-inflation">⚠ Inflation</td>
+                            </tr>
+                            <tr>
+                                <td>Mr. Smith</td>
+                                <td>78%</td>
+                                <td>82%</td>
+                                <td class="status-aligned">-4</td>
+                                <td class="status-aligned">✓ Aligned</td>
+                            </tr>
+                            <tr>
+                                <td>Dr. Williams</td>
+                                <td>65%</td>
+                                <td>84%</td>
+                                <td class="status-deflation">-19</td>
+                                <td class="status-deflation">⚠ Deflation</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `
+            },
+            {
+                title: "Taking Action and Intervention",
+                icon: "✅",
+                content: `
+                    <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 20px;">Strategies for Addressing Variance</h2>
+
+                    <div class="alert alert-green">
+                        <p>Once patterns are identified, implement supportive interventions that maintain teacher autonomy while ensuring consistency.</p>
+                    </div>
+
+                    <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #1e40af; margin-bottom: 15px;"><span class="step-badge" style="background: #dbeafe; color: #1e40af;">Step 1</span>Initial Conversation</h3>
+                        <ul>
+                            <li>Approach with data, not judgment</li>
+                            <li>Share specific patterns and comparisons</li>
+                            <li>Ask teacher for their perspective</li>
+                            <li>Understand grading philosophy and practices</li>
+                            <li>Listen for underlying challenges</li>
+                        </ul>
+                    </div>
+
+                    <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #1e40af; margin-bottom: 15px;"><span class="step-badge" style="background: #dbeafe; color: #1e40af;">Step 2</span>Collaborative Analysis</h3>
+                        <ul>
+                            <li>Review grading criteria and rubrics together</li>
+                            <li>Examine sample student work</li>
+                            <li>Compare with department standards</li>
+                            <li>Identify assessment alignment discrepancies</li>
+                            <li>Discuss validity and reliability</li>
+                        </ul>
+                    </div>
+
+                    <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #1e40af; margin-bottom: 15px;"><span class="step-badge" style="background: #dbeafe; color: #1e40af;">Step 3</span>Support Interventions</h3>
+                        
+                        <div class="grid-2">
+                            <div class="card card-red">
+                                <strong>For Grade Inflation:</strong>
+                                <ul style="margin-top: 10px; font-size: 14px;">
+                                    <li>Calibrate with peers</li>
+                                    <li>Increase assessment rigor</li>
+                                    <li>Align grading to standards</li>
+                                    <li>Reduce extra credit</li>
+                                    <li>Focus on mastery-based grading</li>
+                                </ul>
+                            </div>
+
+                            <div class="card card-purple">
+                                <strong>For Grade Deflation:</strong>
+                                <ul style="margin-top: 10px; font-size: 14px;">
+                                    <li>Review criteria clarity</li>
+                                    <li>Provide more formative feedback</li>
+                                    <li>Offer retake/revision policies</li>
+                                    <li>Clarify expectations earlier</li>
+                                    <li>Balance assessment types</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #1e40af; margin-bottom: 15px;"><span class="step-badge" style="background: #dbeafe; color: #1e40af;">Step 4</span>Ongoing Monitoring</h3>
+                        <ul>
+                            <li>Schedule quarterly follow-ups</li>
+                            <li>Track progress with updated data</li>
+                            <li>Celebrate improvements</li>
+                            <li>Provide continued professional development</li>
+                            <li>Build collaborative grading culture</li>
+                        </ul>
+                    </div>
+                `
+            },
+            {
+                title: "Calculate Gap Scores",
+                icon: "🧮",
+                content: '' // Will be dynamically generated
+            },
+            {
+                title: "Knowledge Check Quiz",
+                icon: "🎓",
+                content: '' // Will be dynamically generated
+            }
+        ];
+
+        function renderCalculator() {
+            let html = `
+                <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 20px;">Practice Activity: Calculate Grade-Mastery Gaps</h2>
+                
+                <div class="alert alert-blue">
+                    <p><strong>Hands-on Exercise:</strong> Enter data for multiple classrooms to calculate gap scores and identify potential grade variance issues.</p>
+                </div>
+
+                <div style="background: #fffbeb; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
+                    <h3 style="color: #92400e; margin-bottom: 15px;">📊 Grade Averaging Tool</h3>
+                    <p style="margin-bottom: 15px; font-size: 14px; color: #78350f;">Need to calculate an average course grade? Enter individual student grades below (comma-separated or one per line):</p>
+                    
+                    <textarea id="gradeInput" placeholder="Enter grades: 85, 92, 78, 88, 95&#10;or one per line:&#10;85&#10;92&#10;78" style="width: 100%; min-height: 100px; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: monospace; margin-bottom: 10px;"></textarea>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button class="btn btn-secondary" onclick="calculateAverage()" style="font-size: 14px;">Calculate Average</button>
+                        <button class="btn btn-secondary" onclick="clearGrades()" style="font-size: 14px;">Clear</button>
+                    </div>
+                    
+                    <div id="averageResult" style="display: none; background: white; padding: 15px; border-radius: 6px; margin-top: 10px;">
+                        <strong style="color: #1f2937;">Result:</strong>
+                        <div style="font-size: 24px; color: #059669; margin-top: 5px; font-weight: bold;" id="avgValue"></div>
+                        <p style="font-size: 12px; color: #6b7280; margin-top: 5px;" id="gradeCount"></p>
+                    </div>
+                </div>
+
+                <div class="alert alert-amber" style="margin-bottom: 25px;">
+                    <h4 style="margin-bottom: 10px; color: #92400e;">📋 About Standards Assessments</h4>
+                    <p style="margin-bottom: 10px; font-size: 14px;">Standards assessments vary by state and may include:</p>
+                    <ul style="font-size: 14px; margin-left: 20px; line-height: 1.8;">
+                        <li><strong>Smarter Balanced:</strong> Used in CA, CT, DE, HI, ID, ME, MI, MT, NH, NV, OR, SD, VT, WA, WV</li>
+                        <li><strong>PARCC:</strong> Used in CO, DC, IL, MD, MA, NJ, NM, RI</li>
+                        <li><strong>State-Specific Tests:</strong> FSA (FL), STAAR (TX), MCAS (MA), SOL (VA), EOC (Various states)</li>
+                        <li><strong>Benchmark Assessments:</strong> NWEA MAP, iReady, Renaissance Star, Illuminate</li>
+                        <li><strong>Common Assessments:</strong> District-developed, grade-level or course-specific evaluations</li>
+                    </ul>
+                    <p style="font-size: 14px; margin-top: 10px; font-style: italic;">Use whichever assessment data is available in your context. Convert scores to percentages (0-100%) for consistency.</p>
+                </div>
+
+                <div id="classroomForms"></div>
+
+                <div style="margin: 20px 0; display: flex; gap: 15px;">
+                    <button class="btn btn-secondary" onclick="addClassroom()">➕ Add Another Classroom</button>
+                    <button class="btn btn-primary" onclick="calculateGaps()" id="calcBtn">🧮 Calculate Gap Scores</button>
+                </div>
+
+                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-top: 20px;">
+                    <h4 style="margin-bottom: 10px; color: #1f2937;">How Gap Scores Are Calculated:</h4>
+                    <div class="formula">Gap Score = Course Grade - Average Standards Score</div>
+                    <p style="font-size: 14px; margin-top: 10px;">If Common Assessment is provided:</p>
+                    <div class="formula">(Standards Assessment + Common Assessment) ÷ 2</div>
+                    <div style="margin-top: 15px; font-size: 14px;">
+                        <p><strong style="color: #ef4444;">Gap ≥ +15:</strong> Potential grade inflation</p>
+                        <p><strong style="color: #10b981;">Gap between -10 and +10:</strong> Well-aligned grading</p>
+                        <p><strong style="color: #a855f7;">Gap ≤ -15:</strong> Potential grade deflation</p>
+                    </div>
+                </div>
+
+                <div id="resultsArea"></div>
+            `;
+            return html;
+        }
+
+        function renderClassroomForms() {
+            let html = '';
+            classrooms.forEach((classroom, index) => {
+                html += `
+                    <div class="classroom-card">
+                        <div class="classroom-header">
+                            <h4>Classroom ${index + 1}</h4>
+                            ${classrooms.length > 1 ? `<button class="btn-icon" onclick="removeClassroom(${classroom.id})">🗑️ Remove</button>` : ''}
+                        </div>
+                        <div class="grid-inputs">
+                            <div class="input-group">
+                                <label>Teacher Name *</label>
+                                <input type="text" id="teacher_${classroom.id}" value="${classroom.teacher}" placeholder="e.g., Ms. Johnson" oninput="updateClassroom(${classroom.id}, 'teacher', this.value)">
+                            </div>
+                            <div class="input-group">
+                                <label>Average Course Grade (%) *</label>
+                                <input type="number" min="0" max="100" step="0.1" id="grade_${classroom.id}" value="${classroom.courseGrade}" placeholder="e.g., 85.5" oninput="updateClassroom(${classroom.id}, 'courseGrade', this.value)">
+                                <small>Final or semester grades assigned (use calculator above if needed)</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Standards Assessment Score (%) *</label>
+                                <input type="number" min="0" max="100" step="0.1" id="standards_${classroom.id}" value="${classroom.standardsScore}" placeholder="e.g., 72.3" oninput="updateClassroom(${classroom.id}, 'standardsScore', this.value)">
+                                <small>State tests (Smarter Balanced, PARCC, etc.) or benchmark assessments</small>
+                            </div>
+                            <div class="input-group">
+                                <label>Common Assessment Score (%) - Optional</label>
+                                <input type="number" min="0" max="100" step="0.1" id="common_${classroom.id}" value="${classroom.commonAssessment}" placeholder="e.g., 68.7" oninput="updateClassroom(${classroom.id}, 'commonAssessment', this.value)">
+                                <small>District-wide or grade-level assessments (optional)</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('classroomForms').innerHTML = html;
+        }
+
+        function calculateAverage() {
+            const input = document.getElementById('gradeInput').value;
+            if (!input.trim()) {
+                alert('Please enter some grades first!');
+                return;
+            }
+
+            // Parse grades - handle commas, spaces, newlines
+            const grades = input
+                .split(/[\n,\s]+/)
+                .map(g => g.trim())
+                .filter(g => g !== '')
+                .map(g => parseFloat(g))
+                .filter(g => !isNaN(g) && g >= 0 && g <= 100);
+
+            if (grades.length === 0) {
+                alert('No valid grades found. Please enter numbers between 0 and 100.');
+                return;
+            }
+
+            const average = grades.reduce((sum, grade) => sum + grade, 0) / grades.length;
+
+            document.getElementById('avgValue').textContent = average.toFixed(2) + '%';
+            document.getElementById('gradeCount').textContent = `Based on ${grades.length} student grade${grades.length !== 1 ? 's' : ''}`;
+            document.getElementById('averageResult').style.display = 'block';
+        }
+
+        function clearGrades() {
+            document.getElementById('gradeInput').value = '';
+            document.getElementById('averageResult').style.display = 'none';
+        }
+
+        function addClassroom() {
+            classrooms.push({id: Date.now(), teacher: '', courseGrade: '', standardsScore: '', commonAssessment: ''});
+            renderModule(currentModule);
+        }
+
+        function removeClassroom(id) {
+            classrooms = classrooms.filter(c => c.id !== id);
+            renderModule(currentModule);
+        }
+
+        function updateClassroom(id, field, value) {
+            const classroom = classrooms.find(c => c.id === id);
+            if (classroom) classroom[field] = value;
+        }
+
+        function calculateGaps() {
+            results = classrooms
+                .filter(c => c.teacher && c.courseGrade && c.standardsScore)
+                .map(c => {
+                    const courseGrade = parseFloat(c.courseGrade);
+                    const standardsScore = parseFloat(c.standardsScore);
+                    const commonAssessment = c.commonAssessment ? parseFloat(c.commonAssessment) : null;
+                    
+                    const avgStandards = commonAssessment ? (standardsScore + commonAssessment) / 2 : standardsScore;
+                    const gap = courseGrade - avgStandards;
+                    
+                    let status = 'Aligned';
+                    let statusClass = 'status-aligned';
+                    let bgColor = '#f0fdf4';
+                    
+                    if (gap >= 15) {
+                        status = 'Inflation Risk';
+                        statusClass = 'status-inflation';
+                        bgColor = '#fef2f2';
+                    } else if (gap <= -15) {
+                        status = 'Deflation Risk';
+                        statusClass = 'status-deflation';
+                        bgColor = '#faf5ff';
+                    }
+                    
+                    return {
+                        teacher: c.teacher,
+                        courseGrade,
+                        avgStandards: avgStandards.toFixed(1),
+                        gap: gap.toFixed(1),
+                        status,
+                        statusClass,
+                        bgColor
+                    };
+                });
+
+            if (results.length === 0) {
+                alert('Please fill in at least one classroom with teacher name, course grade, and standards score.');
+                return;
+            }
+
+            showResults();
+        }
+
+        function showResults() {
+            const inflation = results.filter(r => r.status === 'Inflation Risk');
+            const deflation = results.filter(r => r.status === 'Deflation Risk');
+            const aligned = results.filter(r => r.status === 'Aligned');
+
+            let html = `
+                <div style="margin-top: 40px;">
+                    <div class="alert alert-green">
+                        <h3 style="margin-bottom: 10px;">📊 Analysis Results (${results.length} Classroom${results.length !== 1 ? 's' : ''})</h3>
+                        <p>Review the gap scores below to identify classrooms requiring attention.</p>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Teacher</th>
+                                <th>Course Grade</th>
+                                <th>Avg Standards</th>
+                                <th>Gap Score</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${results.map(r => `
+                                <tr style="background: ${r.bgColor}">
+                                    <td><strong>${r.teacher}</strong></td>
+                                    <td>${r.courseGrade}%</td>
+                                    <td>${r.avgStandards}%</td>
+                                    <td class="${r.statusClass}"><strong>${r.gap > 0 ? '+' : ''}${r.gap}</strong></td>
+                                    <td class="${r.statusClass}"><strong>${r.status === 'Inflation Risk' ? '⚠ ' : r.status === 'Deflation Risk' ? '⚠ ' : '✓ '}${r.status}</strong></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 30px;">
+                        <h3 style="margin-bottom: 20px; color: #1f2937;">Summary & Recommendations:</h3>
+
+                        ${inflation.length > 0 ? `
+                            <div class="alert alert-red" style="margin-bottom: 20px;">
+                                <h4 style="margin-bottom: 10px;">📈 Grade Inflation Detected (${inflation.length} classroom${inflation.length !== 1 ? 's' : ''})</h4>
+                                <p style="font-style: italic; margin-bottom: 15px;">Course grades are significantly higher than standards mastery scores, suggesting grades may not accurately reflect student learning.</p>
+                                
+                                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                    <strong>Affected Teachers:</strong>
+                                    <ul style="margin: 10px 0 0 20px;">
+                                        ${inflation.map(r => `<li><strong>${r.teacher}:</strong> Gap of ${r.gap} points</li>`).join('')}
+                                    </ul>
+                                </div>
+
+                                <strong>Next Steps:</strong>
+                                <div style="margin-top: 10px;">
+                                    <p><span class="step-badge">1</span><strong>Initial Conversation:</strong> Schedule private meeting with data, ask about grading philosophy, listen for challenges</p>
+                                    <p><span class="step-badge">2</span><strong>Collaborative Analysis:</strong> Review rubrics, sample work, and alignment with standards together</p>
+                                    <p><span class="step-badge">3</span><strong>Support Interventions:</strong> Calibrate with peers, increase rigor, align to standards, reduce extra credit</p>
+                                    <p><span class="step-badge">4</span><strong>Ongoing Monitoring:</strong> Quarterly follow-ups, track progress, celebrate improvements</p>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${deflation.length > 0 ? `
+                            <div class="alert alert-purple" style="margin-bottom: 20px;">
+                                <h4 style="margin-bottom: 10px;">📉 Grade Deflation Detected (${deflation.length} classroom${deflation.length !== 1 ? 's' : ''})</h4>
+                                <p style="font-style: italic; margin-bottom: 15px;">Course grades are significantly lower than standards mastery scores, suggesting students may not be receiving recognition they deserve.</p>
+                                
+                                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                    <strong>Affected Teachers:</strong>
+                                    <ul style="margin: 10px 0 0 20px;">
+                                        ${deflation.map(r => `<li><strong>${r.teacher}:</strong> Gap of ${r.gap} points</li>`).join('')}
+                                    </ul>
+                                </div>
+
+                                <strong>Next Steps:</strong>
+                                <div style="margin-top: 10px;">
+                                    <p><span class="step-badge purple">1</span><strong>Initial Conversation:</strong> Frame positively about students showing mastery, explore grading expectations</p>
+                                    <p><span class="step-badge purple">2</span><strong>Collaborative Analysis:</strong> Investigate unclear expectations, overly harsh rubrics, limited feedback loops</p>
+                                    <p><span class="step-badge purple">3</span><strong>Support Interventions:</strong> Clarify criteria, provide formative feedback, allow retakes, balance assessments</p>
+                                    <p><span class="step-badge purple">4</span><strong>Ongoing Monitoring:</strong> Regular check-ins on policy changes, track student success improvements</p>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${aligned.length > 0 ? `
+                            <div class="alert alert-green">
+                                <h4 style="margin-bottom: 10px;">✅ Well-Aligned Grading (${aligned.length} classroom${aligned.length !== 1 ? 's' : ''})</h4>
+                                <p style="font-style: italic; margin-bottom: 15px;">Course grades accurately reflect standards mastery—this is the gold standard! These teachers are models of best practice.</p>
+                                
+                                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                    <strong>Exemplary Teachers:</strong>
+                                    <ul style="margin: 10px 0 0 20px;">
+                                        ${aligned.map(r => `<li><strong>${r.teacher}:</strong> Gap of ${r.gap} points (excellent alignment)</li>`).join('')}
+                                    </ul>
+                                </div>
+
+                                <strong>Next Steps:</strong>
+                                <div style="margin-top: 10px;">
+                                    <p><span class="step-badge green">1</span><strong>Recognize & Celebrate:</strong> Send positive recognition, acknowledge in evaluations, share appreciation publicly</p>
+                                    <p><span class="step-badge green">2</span><strong>Learn From Practices:</strong> Conduct inquiry conversation, document best practices, collect sample rubrics</p>
+                                    <p><span class="step-badge green">3</span><strong>Leverage as Resource:</strong> Pair with struggling teachers for mentoring, lead PD sessions, facilitate calibration</p>
+                                    <p><span class="step-badge green">4</span><strong>Maintain Excellence:</strong> Continue monitoring, provide ongoing support, encourage innovation</p>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="resetCalculator()" style="margin-top: 20px;">🔄 Start New Analysis</button>
+                </div>
+            `;
+
+            document.getElementById('resultsArea').innerHTML = html;
+        }
+
+        function resetCalculator() {
+            classrooms = [{id: 1, teacher: '', courseGrade: '', standardsScore: '', commonAssessment: ''}];
+            results = [];
+            renderModule(currentModule);
+        }
+
+        function renderQuiz() {
+            const questions = [
+                {
+                    q: "What is the primary indicator of grade inflation?",
+                    options: [
+                        "Course grades significantly higher than standards mastery scores",
+                        "Students receiving mostly C grades",
+                        "Teachers using rubrics",
+                        "High student attendance rates"
+                    ],
+                    correct: 0
+                },
+                {
+                    q: "What is an appropriate first step when addressing grade variance?",
+                    options: [
+                        "Immediately mandate grading changes",
+                        "Have a data-informed conversation with the teacher",
+                        "Ignore the issue if students are happy",
+                        "Publicly announce the problem"
+                    ],
+                    correct: 1
+                },
+                {
+                    q: "A teacher has an average course grade of 68% but students score 85% on standards assessments. This indicates:",
+                    options: [
+                        "Grade inflation",
+                        "Grade deflation",
+                        "Perfect alignment",
+                        "Invalid assessment data"
+                    ],
+                    correct: 1
+                },
+                {
+                    q: "Which is NOT a valid support intervention for grade inflation?",
+                    options: [
+                        "Calibrating with department colleagues",
+                        "Increasing assessment rigor",
+                        "Lowering standards mastery requirements",
+                        "Aligning grading to learning standards"
+                    ],
+                    correct: 2
+                }
+            ];
+
+            if (Object.keys(quizAnswers).length < 4) {
+                let html = `
+                    <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 20px;">Test Your Understanding</h2>
+                `;
+
+                questions.forEach((item, qIndex) => {
+                    html += `
+                        <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 15px; color: #1f2937;">${qIndex + 1}. ${item.q}</h4>
+                            ${item.options.map((opt, oIndex) => `
+                                <div class="quiz-option">
+                                    <input type="radio" name="q${qIndex}" value="${oIndex}" onchange="quizAnswers.q${qIndex} = ${oIndex}; updateQuizButton();">
+                                    <span>${opt}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                });
+
+                html += `<button class="btn btn-primary" id="submitQuiz" onclick="submitQuiz()" disabled>Submit Quiz</button>`;
+                return html;
+            } else {
+                const score = calculateScore();
+                const pass = score >= 3;
+
+                let html = `
+                    <h2 style="font-size: 28px; color: #1f2937; margin-bottom: 20px;">Quiz Results</h2>
+                    
+                    <div class="quiz-result ${pass ? 'pass' : 'fail'}">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                            <div style="font-size: 48px;">${pass ? '🏆' : '📝'}</div>
+                            <div>
+                                <h3 style="font-size: 24px; margin-bottom: 5px;">Score: ${score} out of 4</h3>
+                                <p>${pass ? 'Excellent work! You have a strong understanding of grade variance analysis.' : 'Review the modules again to strengthen your understanding.'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <h4 style="margin-bottom: 15px; color: #1f2937;">Correct Answers:</h4>
+                        <ol style="line-height: 2;">
+                            <li class="${quizAnswers.q0 === 0 ? 'status-aligned' : 'status-inflation'}">Course grades significantly higher than standards mastery scores ${quizAnswers.q0 === 0 ? '✓' : '✗'}</li>
+                            <li class="${quizAnswers.q1 === 1 ? 'status-aligned' : 'status-inflation'}">Have a data-informed conversation with the teacher ${quizAnswers.q1 === 1 ? '✓' : '✗'}</li>
+                            <li class="${quizAnswers.q2 === 1 ? 'status-aligned' : 'status-inflation'}">Grade deflation ${quizAnswers.q2 === 1 ? '✓' : '✗'}</li>
+                            <li class="${quizAnswers.q3 === 2 ? 'status-aligned' : 'status-inflation'}">Lowering standards mastery requirements ${quizAnswers.q3 === 2 ? '✓' : '✗'}</li>
+                        </ol>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="retakeQuiz()">Retake Quiz</button>
+                `;
+                return html;
+            }
+        }
+
+        function updateQuizButton() {
+            const btn = document.getElementById('submitQuiz');
+            if (btn) {
+                btn.disabled = Object.keys(quizAnswers).length < 4;
+            }
+        }
+
+        function submitQuiz() {
+            renderModule(currentModule);
+        }
+
+        function calculateScore() {
+            const correct = [0, 1, 1, 2];
+            let score = 0;
+            correct.forEach((answer, idx) => {
+                if (quizAnswers[`q${idx}`] === answer) score++;
+            });
+            return score;
+        }
+
+        function retakeQuiz() {
+            quizAnswers = {};
+            renderModule(currentModule);
+        }
+
+        function renderModule(index) {
+            currentModule = index;
+            
+            // Update progress bar
+            let progressHtml = '';
+            modules.forEach((m, i) => {
+                let className = 'progress-segment';
+                if (completedModules.includes(i)) className += ' completed';
+                else if (i === currentModule) className += ' active';
+                progressHtml += `<div class="${className}"></div>`;
+            });
+            document.getElementById('progressBar').innerHTML = progressHtml;
+
+            // Update module nav
+            let navHtml = '';
+            modules.forEach((m, i) => {
+                const active = i === currentModule ? 'active' : '';
+                const check = completedModules.includes(i) ? '<span class="check">✓</span>' : '';
+                navHtml += `
+                    <button class="module-btn ${active}" onclick="goToModule(${i})">
+                        <span>${m.icon}</span>
+                        <span style="flex: 1; font-size: 13px;">${m.title}</span>
+                        ${check}
+                    </button>
+                `;
+            });
+            document.getElementById('moduleNav').innerHTML = navHtml;
+
+            // Update header
+            document.getElementById('moduleHeader').innerHTML = `
+                <div class="module-icon">${modules[index].icon}</div>
+                <div class="module-title">
+                    <small>Module ${index + 1} of ${modules.length}</small>
+                    <h2>${modules[index].title}</h2>
+                </div>
+            `;
+
+            // Update content
+            let content = modules[index].content;
+            if (index === 4) {
+                content = renderCalculator();
+            } else if (index === 5) {
+                content = renderQuiz();
+            }
+            document.getElementById('moduleContent').innerHTML = content;
+
+            if (index === 4) {
+                renderClassroomForms();
+            }
+
+            // Update buttons
+            document.getElementById('prevBtn').disabled = index === 0;
+            if (index === modules.length - 1) {
+                document.getElementById('nextBtn').textContent = completedModules.includes(index) ? 'Completed!' : 'Complete Training';
+                document.getElementById('nextBtn').className = 'btn btn-success';
+                document.getElementById('nextBtn').disabled = completedModules.includes(index);
+            } else {
+                document.getElementById('nextBtn').textContent = 'Next Module';
+                document.getElementById('nextBtn').className = 'btn btn-primary';
+                document.getElementById('nextBtn').disabled = false;
+            }
+
+            window.scrollTo(0, 0);
+        }
+
+        function goToModule(index) {
+            renderModule(index);
+        }
+
+        function previousModule() {
+            if (currentModule > 0) {
+                renderModule(currentModule - 1);
+            }
+        }
+
+        function nextModule() {
+            if (!completedModules.includes(currentModule)) {
+                completedModules.push(currentModule);
+            }
+            if (currentModule < modules.length - 1) {
+                renderModule(currentModule + 1);
+            }
+        }
+
+        // Initialize
+        renderModule(0);
+    </script>
+</body>
+</html>
